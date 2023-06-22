@@ -1,0 +1,207 @@
+//Rubinetti Maria Sol - 1D
+
+#include <Servo.h>
+
+#include <LiquidCrystal.h>
+
+#include <IRremote.h>
+
+#define TMP A0
+#define LED_1 12
+#define LED_2 13
+#define REMOTO 11
+#define BOTON_DE_APAGADO 0xFF00BF00
+
+int sensor = 0;
+Servo servo_alarma;
+LiquidCrystal displayLCD(4,5,6,7,8,9);
+float temperatura = 0.0;
+float tempC = 0.0;
+int grados = 90;
+bool flagPrendido = false;
+
+void setup()
+{
+  displayLCD.begin(16, 2);
+  pinMode(LED_1, OUTPUT);
+  pinMode(LED_2, OUTPUT);
+  IrReceiver.begin(REMOTO, DISABLE_LED_FEEDBACK);
+  servo_alarma.attach(3,400,7000);
+  Serial.begin(9600);
+}
+
+int receptorDeTemperatura(){
+  int lectura = analogRead(TMP);
+
+  temperatura = map(lectura, 20, 358, -40,125);
+
+  Serial.print("Grados: ");
+  Serial.print(temperatura);
+  Serial.println("°C");
+
+  return temperatura;
+}
+void prenderDisplayLCD(){
+  displayLCD.display();
+}
+
+void apagarDisplayLCD(){
+  displayLCD.noDisplay();
+}
+
+void mensajeLCD(int temp){
+  
+  if (temp > 40){
+    Serial.println("Las temperaturas indican un incendio");
+	displayLCD.setCursor(0, 0);
+    displayLCD.print("FUEGO, EVACUEN");
+    displayLCD.setCursor(0, 1);
+    displayLCD.print("EL LUGAR");
+    servo_alarma.write(0);
+    delay(50);
+    servo_alarma.write(90);
+    delay(50);
+    codigoMorse();
+    delay(200);
+    displayLCD.clear();
+    
+  } 
+   if (temp > 27 && temp <40){
+     	Serial.println("Es verano ");
+     	servo_alarma.write(0);
+    	displayLCD.setCursor(0, 0);
+    	displayLCD.print("Verano   ");
+    	displayLCD.setCursor(0,1);
+        displayLCD.print(temp);
+     	displayLCD.print("°");
+   
+       
+  } else {
+    if (temp > 19 && temp < 27){
+      	Serial.println("Es primavera ");
+      	servo_alarma.write(0);
+      	displayLCD.setCursor(0, 0);
+    	displayLCD.print("Primavera   ");
+      	displayLCD.setCursor(0,1);
+        displayLCD.print(temp);
+      	displayLCD.print("°");
+       
+    } else {
+      if (temp > 10 && temp < 19){
+        Serial.println("Es otoño ");
+        servo_alarma.write(0);
+        displayLCD.setCursor(0, 0);
+    	displayLCD.print("Otonio   ");
+        displayLCD.setCursor(0,1);
+        displayLCD.print(temp);
+        displayLCD.print("°");
+       
+    } else {
+        if (temp < 10) {
+          servo_alarma.write(0);
+          Serial.println("Es invierno ");
+          displayLCD.setCursor(0, 0);
+          displayLCD.print("Invierno    ");
+          displayLCD.setCursor(0,1);
+          displayLCD.print(temp);
+          displayLCD.print("°");
+        }
+       }
+    }
+    }
+   }  
+
+void encenderLed(int lucecita){
+  digitalWrite(lucecita, HIGH);
+}
+
+void apagarLed(int lucecita){
+  digitalWrite(lucecita,LOW);
+}
+
+void titilarCorto(){
+  encenderLed(LED_1);
+  encenderLed(LED_2);
+  delay(300);
+  apagarLed(LED_1);
+  apagarLed(LED_2);
+  delay(300);
+  encenderLed(LED_1);
+  encenderLed(LED_2);
+  delay(300);
+  apagarLed(LED_1);
+  apagarLed(LED_2);
+  delay(300);
+  encenderLed(LED_1);
+  encenderLed(LED_2);
+  delay(300);
+  apagarLed(LED_1);
+  apagarLed(LED_2);
+  delay(300);
+}
+ 
+void titilarLargo(){
+  encenderLed(LED_1);
+  encenderLed(LED_2);
+  delay(600);
+  apagarLed(LED_1);
+  apagarLed(LED_2);
+  delay(600);
+  encenderLed(LED_1);
+  encenderLed(LED_2);
+  delay(600);
+  apagarLed(LED_1);
+  apagarLed(LED_2);
+  delay(600);
+  encenderLed(LED_1);
+  encenderLed(LED_2);
+  delay(600);
+  apagarLed(LED_1);
+  apagarLed(LED_2);
+}
+void codigoMorse(){
+  
+  titilarCorto();
+  titilarLargo();
+  titilarCorto();
+}
+
+
+void detectarApagado(float botonPresionado)
+{
+  if(botonPresionado == BOTON_DE_APAGADO)
+    {
+      flagPrendido = !flagPrendido;
+      displayLCD.clear();
+    }
+    IrReceiver.resume();
+}
+
+void detectarEncendido(float botonPresionado){
+  if (botonPresionado == BOTON_DE_APAGADO){
+    flagPrendido = true;
+  }
+}
+                    
+void loop()
+{
+ 
+  if(IrReceiver.decode())
+  {
+    detectarEncendido(IrReceiver.decodedIRData.decodedRawData);
+  }
+
+  if(flagPrendido)
+  {
+    prenderDisplayLCD();
+    
+    temperatura = receptorDeTemperatura(); 
+    mensajeLCD(temperatura);
+  }
+  else 
+  { 
+    apagarDisplayLCD();
+  }
+
+}
+  
